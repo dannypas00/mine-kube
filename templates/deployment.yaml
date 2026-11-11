@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+{{/*apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "mine-kube.fullname" . }}
@@ -76,3 +76,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+*/}}

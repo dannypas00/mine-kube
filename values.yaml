@@ -1,6 +1,9 @@
 # This is to override the chart name.
 nameOverride: ""
 fullnameOverride: ""
+namespace:
+  create: true
+  name: mine-kube
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
@@ -24,26 +27,6 @@ podLabels: {}
 podSecurityContext: {}
 securityContext: {}
 
-# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
-service:
-  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
-  type: ClusterIP
-  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
-  port: 80
-
-# Additional volumes on the output Deployment definition.
-volumes: []
-  # - name: foo
-  #   secret:
-  #     secretName: mysecret
-  #     optional: false
-
-# Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
-  # - name: foo
-  #   mountPath: "/etc/foo"
-  #   readOnly: true
-
 nodeSelector: {}
 
 tolerations: []
@@ -62,7 +45,8 @@ minecraft:
     # Exact hostname can be changed per server through the `hostname` value
     domain: example.com
     # Use an existing secret for the curseforge API key. If not set, a new empty secret will be created and needs to manually be filled
-    # cf_api_key_secret: "mine-kube.cf-api-key-secret"
+    # cf_api_key_secret: "cf-api-key-secret"
+    cf_api_key_secret_annotations: {}
 
     # TODO: Downloads volume for mods that curseforge does not allow automatic downloading for
   servers:
@@ -114,9 +98,10 @@ minecraft:
       # Only create the server files, exit after creation is successful
       setup_only: false
 
-      # Use existing secret for RCON password instead of generating one. Only intended for externally managed secrets.
-      # It is strongly recommended to not re-use the same RCON password for multiple servers
-      # rcon_secret: "mine-kube.vanilla-rcon-password"
+      # Use existing secret for the server instead of generating new values. Intended for external secret managers.
+      # It is strongly recommended to not re-use the same secret for multiple servers
+      # existing_secret: "vanilla-secrets"
+      secret_annotations: {}
 
       # See: https://docker-minecraft-server.readthedocs.io/en/latest/variables/#auto-pause
       # auto_pause:
@@ -135,9 +120,6 @@ minecraft:
 
       # See: https://docker-minecraft-server.readthedocs.io/en/latest/variables/#curseforge
       curseforge: {}
-        # Overwrite shared API key secret
-        # api_key_secret: "mine-kube.cf_api_key_secret"
-
         # Strongly recommended to pin exact modpack versions to prevent auto-updates on restart
         # Find the file url by navigating to the "server files" file on the CurseForge website
         # page_url: "https://www.curseforge.com/minecraft/modpacks/all-the-mods-10/files/9431427"
@@ -196,4 +178,5 @@ backups:
     repository_base: "rclone:gdrive:/Backups/Minecraft"
     # Existing secret for the secret restic values. By default an empty secret will be created that you need to fill manually
     # TODO: Add rclone.conf and password to this secret
-    # restic_secret: "mine-kube.restic-secret"
+    # restic_secret: "restic-secret"
+    restic_secret_annotations: {}
