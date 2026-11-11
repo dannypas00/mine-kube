@@ -49,3 +49,122 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+minecraft:
+  shared:
+    # Set this to true if you've read and agree to the minecraft EULA: https://www.minecraft.net/en-us/eula
+    eula: false
+    whitelist: []
+      # - dannypas00
+    ops: []
+      # - dannypas00
+    # Domain used to automatically assign wildcard subdomains, e.g. server "vanilla" will host on "vanilla.example.com"
+    # Exact hostname can be changed per server through the `hostname` value
+    domain: example.com
+    # Use an existing secret for the curseforge API key. If not set, a new empty secret will be created and needs to manually be filled
+    # cf_api_key_secret: "mine-kube.cf_api_key_secret"
+
+    # TODO: Downloads volume for mods that curseforge does not allow automatic downloading for
+  servers:
+    vanilla:
+      # Enable and disable server instead of removing it entirely (and potentially deleting volumes, DNS entries etc.)
+      enabled: true
+      # TODO: Should change to volume mount since most clusters won't have one big directory for all servers
+      directory: vanilla
+      # Server type, defaults to VANILLA. See: https://docker-minecraft-server.readthedocs.io/en/latest/types-and-platforms/
+      type: VANILLA
+      # Minecraft version. Can be "latest" or any version e.g. "1.20.1" or "26.3"
+      version: "latest"
+      enable_whitelist: true
+      min_memory: 1G
+      max_memory: 1G
+      backup:
+        # Which directories to include in backups. Recommended to only include world data in here
+        include_dirs: "world"
+      # These values overwrite the shared or generated values above
+      # hostname: vanilla.example.com
+      # eula: false
+      # whitelist: []
+      # ops: []
+
+      # TODO
+      # Set the server icon
+      icon: ""
+      # TODO: OVERRIDE_ICON auto-toggle when `icon` value changes
+      # Explicitly not allowing server port changes since this should be done with services instead
+      schedule:
+        stop_server_announce_delay: ""
+        stop_server_delay_command: ""
+        stop_duration: 60
+        pre_start_script: ""
+        # RCON schedule commands
+        startup_cmd: ""
+        on_connect_cmd: ""
+        first_connect_cmd: ""
+        on_disconnect_cmd: ""
+        last_disconnect_cmd: ""
+      use_flare_flags: ""
+      use_simd_flags: false
+      proxy: false
+      console: true
+      guid: true
+      # Only create the server files, exit after creation is successful
+      setup_only: false
+
+      # Use existing secret for RCON password instead of generating one. Only intended for externally managed secrets.
+      # It is strongly recommended to not re-use the same RCON password for multiple servers
+      # rcon_secret: "mine-kube.vanilla-rcon-password"
+
+      # See: https://docker-minecraft-server.readthedocs.io/en/latest/variables/#auto-pause
+      # auto_pause:
+      #   timeout_est: 3600
+      #   timeout_init: 600
+      #   timeout_kn: 120
+      #   period: 10
+      #   knock_interface: eth0
+      #   debug: false
+      # See: https://docker-minecraft-server.readthedocs.io/en/latest/variables/#auto-stop
+      # auto_stop:
+      #   timeout_est: 3600
+      #   timeout_init: 1800
+      #   period: 10
+      #   debug: false
+
+      # See: https://docker-minecraft-server.readthedocs.io/en/latest/variables/#curseforge
+      curseforge: {}
+        # Overwrite shared API key secret
+        # api_key_secret: "mine-kube.cf_api_key_secret"
+
+        # Strongly recommended to pin exact modpack versions to prevent auto-updates on restart
+        # Find the file url by navigating to the "server files" file on the CurseForge website
+        # page_url: "https://www.curseforge.com/minecraft/modpacks/all-the-mods-10/files/9431427"
+
+        # Do not change these values unless you know what you're doing
+        # exclude_include_file: ""
+        # exclude_mods: []
+        # force_include_mods: []
+        # ignore_missing_files: []
+        # force_synchronize: false
+        # set_level_from: ""
+        # parallel_downloads: 4
+        # override_skips_existing: false
+        # mod_loader_version: ""
+      
+      resources:
+        requests:
+          cpu: 500m
+          memory: 256Mi
+        limits:
+          cpu: 1000m
+          memory: 1000Mi
+        java:
+          # Recommended to keep these slightly under resource limits
+          # `memory` sets both init and max memory to the same value
+          memory: 950M
+          # init_memory: 200M
+          # max_memory: 950M
+
+      # Set extra env values for the itzg/docker-minecraft container. Useful for changing server.properties values not defined as chart values
+      # See: https://docker-minecraft-server.readthedocs.io/en/latest/variables/#server-properties
+      extra_env: {}
+        # SEED: "12345"
