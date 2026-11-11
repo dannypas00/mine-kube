@@ -62,7 +62,7 @@ minecraft:
     # Exact hostname can be changed per server through the `hostname` value
     domain: example.com
     # Use an existing secret for the curseforge API key. If not set, a new empty secret will be created and needs to manually be filled
-    # cf_api_key_secret: "mine-kube.cf_api_key_secret"
+    # cf_api_key_secret: "mine-kube.cf-api-key-secret"
 
     # TODO: Downloads volume for mods that curseforge does not allow automatic downloading for
   servers:
@@ -81,6 +81,9 @@ minecraft:
       backup:
         # Which directories to include in backups. Recommended to only include world data in here
         include_dirs: "world"
+        pause_if_no_players: true
+        tar_interval: "1h"
+        restic_interval: "24h"
       # These values overwrite the shared or generated values above
       # hostname: vanilla.example.com
       # eula: false
@@ -168,3 +171,29 @@ minecraft:
       # See: https://docker-minecraft-server.readthedocs.io/en/latest/variables/#server-properties
       extra_env: {}
         # SEED: "12345"
+
+data_volume: {}
+  # Each server will create a persistentVolumeClaim for its data
+  # These claims will use a newly created emptyDir persistentVolume but this can be changed below
+  # TODO: Create tutorial docs on using a local PV
+  # data:
+  #   overwrite_persistent_volume: "local-data-pv"
+
+backups:
+  # Tar backups will periodically zip up the world (or other specified directories) and move them to a volume
+  tar:
+    # If enabled, each server will create its own persistentVolumeClaim where its tars backups will be stored
+    # It is *heavily* recommended to change this to be an external storage such as a NAS or a cloud storage bucket
+    enabled: true
+    # overwrite_persistent_volume: "nfs-backup-pv"
+
+  # Restic backups automatically create backups in places such as Google Drive, Dropbox, S3 and many more. For all options, see: https://rclone.org/overview/
+  # Restic backups are intended for personal use. Backing up to cloud storages at scale is better handled through S3, GCP, or other external volume integrations for k8s
+  # Backups will be stored in the same parent directory and all servers can overwrite other servers' backups. If this is a threat to you, please do not use restic backups
+  restic:
+    enabled: false
+    # This name is generated when you create the rclone config. See: https://github.com/itzg/docker-mc-backup?tab=readme-ov-file#restic
+    repository_base: "rclone:gdrive:/Backups/Minecraft"
+    # Existing secret for the secret restic values. By default an empty secret will be created that you need to fill manually
+    # TODO: Add rclone.conf and password to this secret
+    # restic_secret: "mine-kube.restic-secret"
