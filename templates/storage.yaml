@@ -1,0 +1,33 @@
+{{- if empty (.Values.data_volume.overwrite_persistent_volume | default "") }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-pvc
+  namespace: {{ include "mine-kube.namespace" . }}
+  labels:
+    {{- include "mine-kube.labels" . | nindent 4 }}
+spec:
+  storageClassName: ""
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.data_volume.size | default "50Gi" }}
+{{ end -}}
+---
+{{- if and (empty (.Values.backups.tar.overwrite_persistent_volume | default "")) .Values.backups.tar.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tar-backup-pvc
+  namespace: {{ include "mine-kube.namespace" . }}
+  labels:
+    {{- include "mine-kube.labels" . | nindent 4 }}
+spec:
+  storageClassName: ""
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.backups.tar.size | default "200Gi" }}
+{{ end -}}

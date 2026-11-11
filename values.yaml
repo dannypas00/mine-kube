@@ -68,6 +68,7 @@ minecraft:
         pause_if_no_players: true
         tar_interval: "1h"
         restic_interval: "24h"
+
       # These values overwrite the shared or generated values above
       # hostname: vanilla.example.com
       # eula: false
@@ -90,6 +91,7 @@ minecraft:
         first_connect_cmd: ""
         on_disconnect_cmd: ""
         last_disconnect_cmd: ""
+
       use_flare_flags: ""
       use_simd_flags: false
       proxy: false
@@ -134,7 +136,7 @@ minecraft:
         # parallel_downloads: 4
         # override_skips_existing: false
         # mod_loader_version: ""
-      
+
       resources:
         requests:
           cpu: 500m
@@ -154,7 +156,10 @@ minecraft:
       extra_env: {}
         # SEED: "12345"
 
-data_volume: {}
+data_volume:
+  # Total storage size allocated to all servers combined
+  size: 50Gi
+
   # Each server will create a persistentVolumeClaim for its data
   # These claims will use a newly created emptyDir persistentVolume but this can be changed below
   # TODO: Create tutorial docs on using a local PV
@@ -168,6 +173,7 @@ backups:
     # It is *heavily* recommended to change this to be an external storage such as a NAS or a cloud storage bucket
     enabled: true
     # overwrite_persistent_volume: "nfs-backup-pv"
+    size: 200Gi
 
   # Restic backups automatically create backups in places such as Google Drive, Dropbox, S3 and many more. For all options, see: https://rclone.org/overview/
   # Restic backups are intended for personal use. Backing up to cloud storages at scale is better handled through S3, GCP, or other external volume integrations for k8s
