@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: router
+  namespace: {{ include "mine-kube.namespace" . }}
+  labels:
+    {{- include "mine-kube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: router
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: router
+  ports:
+    - port: 25565
+      targetPort: 25565
+      protocol: TCP
+      name: minecraft
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mc-router
+  namespace: {{ include "mine-kube.namespace" . }}
+  labels:
+    {{- include "mine-kube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: router
+spec:
+  serviceName: mc-router
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "mine-kube.labels" . | nindent 6 }}
+      app.kubernetes.io/name: router
+  template:
+    metadata:
+      labels:
+        {{- include "mine-kube.labels" . | nindent 8 }}
+        app.kubernetes.io/name: router
+    spec:
+      serviceAccountName: router
+      containers:
+        - name: router
+          image: itzg/mc-router
+          ports:
+            - containerPort: 25565
+          args:
+            - -in-kube-cluster
+            - -kube-namespace=default
+            - -record-logins
+---
+
+{{- range $key, $val := .Values.minecraft.servers }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $key }}
+  namespace: {{ include "mine-kube.namespace" $ }}
+  labels:
+    {{- include "mine-kube.labels" $ | nindent 4 }}
+    server: {{ $key | lower | quote }}
+  annotations:
+    "mc-router.itzg.me/externalServeName": {{ $val.hostname | default (printf "%s.%s" $key $.Values.minecraft.shared.domain) | lower | quote }}
+spec:
+  selector:
+    server: {{ $key | lower | quote }}
+  ports:
+    - port: 25565
+      targetPort: 25565
+      protocol: TCP
+      name: minecraft
+{{ end -}}
