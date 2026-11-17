@@ -26,12 +26,7 @@ podLabels: {}
 
 podSecurityContext: {}
 securityContext: {}
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
+imagePullSecrets: []
 
 minecraft:
   shared:
@@ -151,10 +146,20 @@ minecraft:
           # init_memory: 200M
           # max_memory: 950M
 
-      # Set extra env values for the itzg/docker-minecraft container. Useful for changing server.properties values not defined as chart values
+      # Set extra env values for the itzg/minecraft-server container. Useful for changing server.properties values not defined as chart values
       # See: https://docker-minecraft-server.readthedocs.io/en/latest/variables/#server-properties
       extra_env: {}
         # SEED: "12345"
+      
+      # Change the default minecraft server image. Defaults represented here
+      image:
+        repository: "itzg/minecraft-server"
+        tag: "latest"
+        pullPolicy: "IfNotPresent"
+
+      nodeSelector: {}
+      tolerations: []
+      affinity: {}
 
 data_volume:
   # Total storage size allocated to all servers combined

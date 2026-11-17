@@ -67,3 +67,27 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{- define "mine-kube.server.type" -}}
+{{- if .type }}
+{{- .type }}
+{{- else if .curseforge.page_url -}}
+AUTO_CURSEFORGE
+{{- else -}}
+VANILLA
+{{- end }}
+{{- end }}
+
+{{- define "mine-kube.server.version" -}}
+{{- .version | default "latest" }}
+{{- end }}
+
+{{- define "mine-kube.server.image" -}}
+"{{ .image.repository | default "itzg/minecraft-server" }}:{{ .image.tag | default "latest" }}"
+{{- end }}
+
+{{- define "mine-kube.server.labels" -}}
+mine-kube.null-it.org/server-name: {{ .name }}
+mine-kube.null-it.org/minecraft-version: {{ include "mine-kube.server.version" . }}
+mine-kube.null-it.org/server-type: {{ include "mine-kube.server.type" . }}
+{{- end }}
