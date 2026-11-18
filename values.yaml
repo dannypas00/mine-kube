@@ -31,7 +31,7 @@ imagePullSecrets: []
 minecraft:
   shared:
     # Set this to true if you've read and agree to the minecraft EULA: https://www.minecraft.net/en-us/eula
-    eula: false
+    eula: true
     whitelist: []
       # - dannypas00
     ops: []
@@ -54,9 +54,15 @@ minecraft:
       type: VANILLA
       # Minecraft version. Can be "latest" or any version e.g. "1.20.1" or "26.3"
       version: "latest"
+      # Set the Message Of The Day
+      motd: "Running on Mine-Kube (mine-kube.dannypas00.com)"
+      # Set the gamemode
+      mode: "survival"
+      # Enable hardcore
+      hardcore: false
+      # Whitelist is enabled by default
       enable_whitelist: true
-      min_memory: 1G
-      max_memory: 1G
+
       backup:
         # Which directories to include in backups. Recommended to only include world data in here
         include_dirs: "world"
@@ -70,15 +76,13 @@ minecraft:
       # whitelist: []
       # ops: []
 
-      # TODO
       # Set the server icon
       icon: ""
-      # TODO: OVERRIDE_ICON auto-toggle when `icon` value changes
+
       # Explicitly not allowing server port changes since this should be done with services instead
       schedule:
         stop_server_announce_delay: ""
         stop_server_delay_command: ""
-        stop_duration: 60
         pre_start_script: ""
         # RCON schedule commands
         startup_cmd: ""
@@ -87,17 +91,25 @@ minecraft:
         on_disconnect_cmd: ""
         last_disconnect_cmd: ""
 
-      use_flare_flags: ""
+      # Change the maximum seconds the container waits for minecraft to shut down
+      stop_duration: 60
+      # Select optimization jvm flags
+      use_aikar_flags: false
+      use_meowice_flags: false
+      use_flare_flags: false
       use_simd_flags: false
+      # Technical settings, do not touch unless you're certain that you need to
       proxy: false
       console: true
-      guid: true
+      gui: true
       # Only create the server files, exit after creation is successful
       setup_only: false
 
       # Use existing secret for the server instead of generating new values. Intended for external secret managers.
       # It is strongly recommended to not re-use the same secret for multiple servers
       # existing_secret: "vanilla-secrets"
+
+      # Add annotations to newly created secrets
       secret_annotations: {}
 
       # See: https://docker-minecraft-server.readthedocs.io/en/latest/variables/#auto-pause
@@ -131,6 +143,13 @@ minecraft:
         # parallel_downloads: 4
         # override_skips_existing: false
         # mod_loader_version: ""
+      
+      gtnh: {}
+        # pack_version: "latest"
+        # Whether to delete all config backups (from updates) on startup. Leave false unless you know what you're doing
+        # delete_backups: false
+        # This needs to be disabled for the initial install since the install script checks it as well
+        # skip_update_check: false
 
       resources:
         requests:
@@ -150,7 +169,7 @@ minecraft:
       # See: https://docker-minecraft-server.readthedocs.io/en/latest/variables/#server-properties
       extra_env: {}
         # SEED: "12345"
-      
+
       # Change the default minecraft server image. Defaults represented here
       image:
         repository: "itzg/minecraft-server"

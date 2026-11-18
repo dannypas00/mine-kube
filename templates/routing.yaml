@@ -15,6 +15,7 @@ spec:
       targetPort: 25565
       protocol: TCP
       name: minecraft
+
 ---
 
 apiVersion: apps/v1
@@ -48,6 +49,7 @@ spec:
             - -in-kube-cluster
             - -kube-namespace=default
             - -record-logins
+
 ---
 
 {{- range $key, $val := .Values.minecraft.servers }}
@@ -58,12 +60,12 @@ metadata:
   namespace: {{ include "mine-kube.namespace" $ }}
   labels:
     {{- include "mine-kube.labels" $ | nindent 4 }}
-    server: {{ $key | lower | quote }}
+    {{- include "mine-kube.server.labels" $val | nindent 4 }}
   annotations:
     "mc-router.itzg.me/externalServeName": {{ $val.hostname | default (printf "%s.%s" $key $.Values.minecraft.shared.domain) | lower | quote }}
 spec:
   selector:
-    server: {{ $key | lower | quote }}
+    {{- include "mine-kube.server.labels" $val | nindent 4 }}
   ports:
     - port: 25565
       targetPort: 25565

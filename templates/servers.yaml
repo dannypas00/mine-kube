@@ -1,5 +1,5 @@
-{{- range $key, $val := .Values.minecraft.servers -}}
-{{- $val := merge (dict "name" $key) $val -}}
+{{- range $key, $val := .Values.minecraft.servers }}
+{{- $val := merge (dict "name" $key) $val $.Values.minecraft.shared }}
 
 apiVersion: apps/v1
 kind: StatefulSet
@@ -43,13 +43,36 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: {{ include "mine-kube.server.image" . }}
+          image: {{ include "mine-kube.server.image" $val }}
           imagePullPolicy: {{ .image.pullPolicy | default "IfNotPresent" }}
+          command: 
+            - sh
+            - -c
+            - |
+              env && sleep infinity
           ports:
             - name: minecraft
               containerPort: 25565
               protocol: TCP
-          
+          startupProbe:
+            exec:
+              command:
+              - mc-health
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 100
+          envFrom:
+          {{- if eq (include "mine-kube.server.type" .) "AUTO_CURSEFORGE" }}
+          - secretRef:
+              name: {{ $.Values.minecraft.shared.cf_api_key_secret | default "cf-api-key-secret" | quote }}
+          {{- end }}
+          - secretRef:
+              name: {{ .existing_secret | default (printf "%s-secrets" $key) | quote }}
+          - configMapRef:
+              name: {{ printf "%s-shared" (include "mine-kube.name" $) | quote }}
+          - configMapRef:
+              name: {{ printf "%s-%s" (include "mine-kube.name" $) $key | quote }}
+
       {{- with .nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -62,4 +85,39 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-%s" (include "mine-kube.name" $) $key }}
+  namespace: {{ include "mine-kube.namespace" $ | quote }}
+  labels:
+    {{- include "mine-kube.server.labels" . | nindent 4 }}
+data:
+{{ range (include "mine-kube.server.env" . | splitList "\n") }}
+{{/* Filter out all empty values */}}
+{{- if (regexMatch "^[a-zA-Z0-9_]*: \"[a-zA-Z0-9_]+\"$" (trim .)) -}}
+  {{ trim . | indent 2 | replace "true" "TRUE" | replace "false" "FALSE" }}
+{{ end -}}
+{{ end -}}
+
+---
+
+{{- end -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-shared" (include "mine-kube.name" $) }}
+  namespace: {{ include "mine-kube.namespace" $ | quote }}
+  labels:
+    {{- include "mine-kube.labels" . | nindent 4 }}
+data:
+{{ range (include "mine-kube.server.env" .Values.minecraft.shared | splitList "\n") }}
+{{/* Filter out all empty values */}}
+{{- if (regexMatch "^[a-zA-Z0-9_]*: \"[a-zA-Z0-9_]+\"$" (trim .)) -}}
+  {{ trim . | indent 2 | replace "true" "TRUE" | replace "false" "FALSE" }}
+{{ end -}}
 {{ end -}}
