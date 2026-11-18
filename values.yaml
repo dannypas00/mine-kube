@@ -53,7 +53,7 @@ minecraft:
       # Server type, defaults to VANILLA. See: https://docker-minecraft-server.readthedocs.io/en/latest/types-and-platforms/
       type: VANILLA
       # Minecraft version. Can be "latest" or any version e.g. "1.20.1" or "26.3"
-      version: "latest"
+      version: "26.1"
       # Set the Message Of The Day
       motd: "Running on Mine-Kube (mine-kube.dannypas00.com)"
       # Set the gamemode
@@ -75,7 +75,11 @@ minecraft:
         tar_interval: "1h"
         restic_interval: "8h"
 
-      # These values overwrite the shared or generated values above
+      # Specify data volume size per server
+      # data_volume_size_override: "100Gi"
+      # tar_volume_size_override: "200Gi"
+
+      # These values override the shared or generated values above
       # hostname: vanilla.example.com
       # eula: false
       # whitelist: []
@@ -178,7 +182,7 @@ minecraft:
       # Change the default minecraft server image. Defaults represented here
       image:
         repository: "itzg/minecraft-server"
-        tag: "latest"
+        tag: "stable"
         pullPolicy: "IfNotPresent"
 
       nodeSelector: {}
@@ -186,32 +190,32 @@ minecraft:
       affinity: {}
 
 data_volume:
-  # Total storage size allocated to all servers combined
+  # Data volume size allocated per server
   size: 50Gi
 
   # Each server will create a persistentVolumeClaim for its data
   # These claims will use a newly created emptyDir persistentVolume but this can be changed below
   # TODO: Create tutorial docs on using a local PV
   # data:
-  #   overwrite_persistent_volume: "local-data-pv"
+  #   override_persistent_volume: "local-data-pv"
 
 backups:
   image:
     repository: "itzg/mc-backup"
     tag: "latest"
-  # Tar backups will periodically zip up the world (or other specified directories) and move them to a volume
+  # Tar backups will periodically compress the world (and/or other specified directories) and move them to a volume
   tar:
     enabled: true
     # If enabled, each server will create its own persistentVolumeClaim where its tars backups will be stored
     # It is *heavily* recommended to change this to be an external storage such as a NAS or a cloud storage bucket
-    # overwrite_persistent_volume: "nfs-backup-pv"
+    # override_persistent_volume: "nfs-backup-pv"
     size: 200Gi
 
   # Restic backups automatically create backups in places such as Google Drive, Dropbox, S3 and many more. For all options, see: https://rclone.org/overview/
   # Restic backups are intended for personal use. Backing up to cloud storages at scale is better handled through S3, GCP, or other external volume integrations for k8s
   # Backups will be stored in the same parent directory and all servers can overwrite other servers' backups. If this is a threat to you, please do not use restic backups
   restic:
-    enabled: true
+    enabled: false
     # This name is generated when you create the rclone config. See: https://github.com/itzg/docker-mc-backup?tab=readme-ov-file#restic
     repository_base: "rclone:gdrive:/Backups/Minecraft"
     # Existing secret for the secret restic values. By default an empty secret will be created that you need to fill manually

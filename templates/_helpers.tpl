@@ -79,7 +79,7 @@ VANILLA
 {{- end }}
 
 {{- define "mine-kube.server.version" -}}
-{{- .version | default "latest" }}
+{{- .version | quote | default "LATEST" }}
 {{- end }}
 
 {{- define "mine-kube.server.image" -}}
@@ -95,7 +95,7 @@ mine-kube.null-it.org/server-type: {{ include "mine-kube.server.type" . }}
 {{- define "mine-kube.server.env" -}}
 EULA: {{ .eula | default "" | quote }}
 TYPE: {{ include "mine-kube.server.type" . | quote }}
-VERSION: {{ include "mine-kube.server.version" . | quote }}
+VERSION: {{ .version | quote }}
 ENABLE_WHITELIST: {{ .enable_whitelist | default "TRUE" | quote }}
 WHITELIST: {{ join "," .whitelist | quote }}
 OPS: {{ join "," .ops | quote }}
@@ -109,7 +109,7 @@ USE_AIKAR_FLAGS: {{ .use_aikar_flags | quote }}
 USE_MEOWICE_FLAGS: {{ .use_meowice_flags | quote }}
 USE_FLARE_FLAGS: {{ .use_flare_flags | quote }}
 USE_SIMD_FLAGS: {{ .use_simd_flags | quote }}
-PROXY: {{ .proxy | quote }}
+PROXY: {{ ternary "TRUE" "" (eq .proxy true) }}
 CONSOLE: {{ .console | quote }}
 GUI: {{ .gui | quote }}
 SETUP_ONLY: {{ .setup_only | quote }}

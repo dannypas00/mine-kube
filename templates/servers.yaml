@@ -1,5 +1,8 @@
 {{- range $key, $val := .Values.minecraft.servers }}
 {{- $val := merge (dict "name" $key) $val $.Values.minecraft.shared }}
+{{- $backup := .backup | default dict -}}
+{{- $tar_enabled := and $backup.tar_enabled (ne (index $.Values "backups" "tar" "enabled") false) -}}
+{{- $restic_enabled := and $backup.restic_enabled (ne (index $.Values "backups" "restic" "enabled") false) -}}
 
 apiVersion: apps/v1
 kind: StatefulSet
@@ -67,17 +70,16 @@ spec:
               name: {{ printf "%s-shared" (include "mine-kube.name" $) | quote }}
           - configMapRef:
               name: {{ printf "%s-%s" (include "mine-kube.name" $) $key | quote }}
-          # volumeMounts:
-          # - mountPath: /data
-          #   name: data
+          volumeMounts:
+          - mountPath: /data
+            name: data
 
         {{- if $.Values.backups -}}
-        {{- $backup := .backup | default dict -}}
 
         {{/*
         Tar backup
         */}}
-        {{ if and (index $.Values.backups "tar" "enabled") (ne $backup.tar_enabled false) -}}
+        {{ if $tar_enabled -}}
         - name: "tar-backup"
           image: {{ include "mine-kube.backup.image" $.Values.backups }}
           env:
@@ -100,17 +102,17 @@ spec:
             value: "/backups/{{ $key }}"
           - name: INCLUDES
             value: {{ $backup.include_dirs | join "," | default "world" | quote }}
-          # volumeMounts:
-          # - mountPath: "/backups"
-          #   name: backup
-          # - mountPath: /data
-          #   name: data
+          volumeMounts:
+          - mountPath: "/backups"
+            name: backup
+          - mountPath: /data
+            name: data
         {{- end -}}
 
         {{/*
         Restic backup
         */}}
-        {{ if and (index $.Values.backups "restic" "enabled") (ne $backup.restic_enabled false) -}}
+        {{ if $restic_enabled -}}
         - name: "restic-backup"
           image: {{ include "mine-kube.backup.image" $.Values.backups }}
           # Copy rclone config to its correct location
@@ -142,8 +144,8 @@ spec:
           volumeMounts:
           - mountPath: /tmp/.config/rclone
             name: rclone-config
-          # - mountPath: /data
-          #   name: data
+          - mountPath: /data
+            name: data
         {{- end -}}
         {{- end -}}
 
@@ -160,13 +162,14 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-      # - name: data
-      #   hostPath:
-      #     path: "{{ $.Values.host_servers_path }}/{{ .directory | default .name | lower | snakecase }}"
-      #     type: DirectoryOrCreate
-      # - name: backup
-      #   persistentVolumeClaim:
-      #     claimName: backup
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ index $.Values "data_volume" "override_persistent_volume" | default (printf "data-%s" $key) }}
+      {{- if $tar_enabled }}
+      - name: backup
+        persistentVolumeClaim:
+          claimName: {{ index $.Values "backups" "tar" "override_persistent_volume" | default (printf "backup-%s" $key) }}
+      {{ end -}}
       - name: rclone-config
         secret:
           secretName: restic-secret
@@ -174,8 +177,51 @@ spec:
 
 ---
 
+{{/*
+Data PVC
+*/}}
+
+{{- if empty (index $.Values "data_volume" "override_persistent_volume") }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "data-%s" $key }}
+  namespace: {{ include "mine-kube.namespace" $ }}
+  labels:
+    {{- include "mine-kube.labels" $ | nindent 4 }}
+    {{- include "mine-kube.server.labels" $val | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .data_volume_size_override | default $.Values.data_volume.size | default "25Gi" }}
 
 ---
+{{ end -}}
+
+{{/*
+Tar backup PVC
+*/}}
+
+{{- if and (empty (index $.Values "backups" "tar" "override_persistent_volume")) $tar_enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "backup-%s" $key }}
+  namespace: {{ include "mine-kube.namespace" $ }}
+  labels:
+    {{- include "mine-kube.labels" $ | nindent 4 }}
+    {{- include "mine-kube.server.labels" $val | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .tar_volume_size_override | default $.Values.backups.tar.size | default "200Gi" }}
+
+---
+{{ end -}}
 
 apiVersion: v1
 kind: ConfigMap
@@ -183,6 +229,7 @@ metadata:
   name: {{ printf "%s-%s" (include "mine-kube.name" $) $key }}
   namespace: {{ include "mine-kube.namespace" $ | quote }}
   labels:
+    {{- include "mine-kube.labels" $ | nindent 4 }}
     {{- include "mine-kube.server.labels" . | nindent 4 }}
 data:
 {{ range (include "mine-kube.server.env" . | splitList "\n") }}
@@ -196,6 +243,9 @@ data:
 
 {{- end -}}
 
+{{/*
+Shared env variables
+*/}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
