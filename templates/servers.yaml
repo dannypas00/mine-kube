@@ -234,7 +234,7 @@ metadata:
 data:
 {{ range (include "mine-kube.server.env" . | splitList "\n") }}
 {{/* Filter out all empty values */}}
-{{- if (regexMatch "^[a-zA-Z0-9_]*: \"[a-zA-Z0-9_]+\"$" (trim .)) -}}
+{{- if (regexMatch "^.+: \".+\"$" (trim .)) -}}
   {{ trim . | indent 2 | replace "true" "TRUE" | replace "false" "FALSE" }}
 {{ end -}}
 {{ end -}}
@@ -256,7 +256,7 @@ metadata:
 data:
 {{ range (include "mine-kube.server.env" .Values.minecraft.shared | splitList "\n") }}
 {{/* Filter out all empty values */}}
-{{- if (regexMatch "^[a-zA-Z0-9_]*: \"[a-zA-Z0-9_]+\"$" (trim .)) -}}
+{{- if (regexMatch "^.+: \".+\"$" (trim .)) -}}
   {{ trim . | indent 2 | replace "true" "TRUE" | replace "false" "FALSE" }}
 {{ end -}}
 {{ end -}}

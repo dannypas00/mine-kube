@@ -32,20 +32,20 @@ minecraft:
   shared:
     # Set this to true if you've read and agree to the minecraft EULA: https://www.minecraft.net/en-us/eula
     eula: true
-    whitelist: []
-      # - dannypas00
-    ops: []
-      # - dannypas00
+    whitelist:
+    - dannypas00
+    ops:
+    - dannypas00
     # Domain used to automatically assign wildcard subdomains, e.g. server "vanilla" will host on "vanilla.example.com"
     # Exact hostname can be changed per server through the `hostname` value
-    domain: example.com
+    domain: dannypas00.com
     # Use an existing secret for the curseforge API key. If not set, a new empty secret will be created and needs to manually be filled
     # cf_api_key_secret: "cf-api-key-secret"
     cf_api_key_secret_annotations: {}
 
     # TODO: Downloads volume for mods that curseforge does not allow automatic downloading for
   servers:
-    vanilla:
+    test:
       # Enable and disable server instead of removing it entirely (and potentially deleting volumes, DNS entries etc.)
       enabled: true
       # TODO: Should change to volume mount since most clusters won't have one big directory for all servers

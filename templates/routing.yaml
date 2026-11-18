@@ -47,12 +47,13 @@ spec:
             - containerPort: 25565
           args:
             - -in-kube-cluster
-            - -kube-namespace=default
+            - {{ printf "-kube-namespace=%s" (include "mine-kube.namespace" .) }}
             - -record-logins
 
 ---
 
 {{- range $key, $val := .Values.minecraft.servers }}
+{{- $val := merge (dict "name" $key) $val $.Values.minecraft.shared }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -62,7 +63,7 @@ metadata:
     {{- include "mine-kube.labels" $ | nindent 4 }}
     {{- include "mine-kube.server.labels" $val | nindent 4 }}
   annotations:
-    "mc-router.itzg.me/externalServeName": {{ $val.hostname | default (printf "%s.%s" $key $.Values.minecraft.shared.domain) | lower | quote }}
+    "mc-router.itzg.me/externalServerName": {{ $val.hostname | default (printf "%s.%s" $key $.Values.minecraft.shared.domain) | lower | quote }}
 spec:
   selector:
     {{- include "mine-kube.server.labels" $val | nindent 4 }}
@@ -72,3 +73,50 @@ spec:
       protocol: TCP
       name: minecraft
 {{ end -}}
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mine-kube-services-watcher
+  namespace: {{ include "mine-kube.namespace" . }}
+  labels:
+    {{- include "mine-kube.labels" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["watch","list"]
+- apiGroups: ["apps"]
+  resources: ["statefulsets"]
+  verbs: ["watch","list","patch"]
+- apiGroups: ["apps"]
+  resources: ["statefulsets/scale"]
+  verbs: ["get"]
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: router
+  namespace: {{ include "mine-kube.namespace" . }}
+  labels:
+    {{- include "mine-kube.labels" . | nindent 4 }}
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mine-kube-router-watches-services
+  namespace: {{ include "mine-kube.namespace" . }}
+  labels:
+    {{- include "mine-kube.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: router
+    namespace: {{ include "mine-kube.namespace" . }}
+roleRef:
+  kind: ClusterRole
+  name: mine-kube-services-watcher
