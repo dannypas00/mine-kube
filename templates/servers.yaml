@@ -45,15 +45,10 @@ spec:
           {{- end }}
           image: {{ include "mine-kube.server.image" $val }}
           imagePullPolicy: {{ .image.pullPolicy | default "IfNotPresent" }}
-          command: 
-            - sh
-            - -c
-            - |
-              env && sleep infinity
           ports:
-            - name: minecraft
-              containerPort: 25565
-              protocol: TCP
+          - name: minecraft
+            containerPort: 25565
+            protocol: TCP
           startupProbe:
             exec:
               command:
@@ -72,6 +67,85 @@ spec:
               name: {{ printf "%s-shared" (include "mine-kube.name" $) | quote }}
           - configMapRef:
               name: {{ printf "%s-%s" (include "mine-kube.name" $) $key | quote }}
+          # volumeMounts:
+          # - mountPath: /data
+          #   name: data
+
+        {{- if $.Values.backups -}}
+        {{- $backup := .backup | default dict -}}
+
+        {{/*
+        Tar backup
+        */}}
+        {{ if and (index $.Values.backups "tar" "enabled") (ne $backup.tar_enabled false) -}}
+        - name: "tar-backup"
+          image: {{ include "mine-kube.backup.image" $.Values.backups }}
+          env:
+          - name: RCON_HOST
+            value: "127.0.0.1"
+          - name: RCON_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ printf "%s-secrets" $key | quote }}
+                key: "RCON_PASSWORD"
+          - name: BACKUP_INTERVAL
+            value: {{ $backup.tar_interval | quote }}
+          - name: PAUSE_IF_NO_PLAYERS
+            value: {{ $backup.pause_if_no_players | quote }}
+          - name: BACKUP_METHOD
+            value: "tar"
+          - name: SRC_DIR
+            value: "/data"
+          - name: DEST_DIR
+            value: "/backups/{{ $key }}"
+          - name: INCLUDES
+            value: {{ $backup.include_dirs | join "," | default "world" | quote }}
+          # volumeMounts:
+          # - mountPath: "/backups"
+          #   name: backup
+          # - mountPath: /data
+          #   name: data
+        {{- end -}}
+
+        {{/*
+        Restic backup
+        */}}
+        {{ if and (index $.Values.backups "restic" "enabled") (ne $backup.restic_enabled false) -}}
+        - name: "restic-backup"
+          image: {{ include "mine-kube.backup.image" $.Values.backups }}
+          # Copy rclone config to its correct location
+          env:
+          - name: RCON_HOST
+            value: "127.0.0.1"
+          - name: RCON_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ printf "%s-secrets" $key | quote }}
+                key: "RCON_PASSWORD"
+          - name: BACKUP_INTERVAL
+            value: {{ $backup.restic_interval | quote }}
+          - name: PAUSE_IF_NO_PLAYERS
+            value: {{ $backup.pause_if_no_players | quote }}
+          - name: BACKUP_METHOD
+            value: "restic"
+          - name: RESTIC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ index $.Values.backups "restic" "restic_secret" | default "restic-secret" | quote }}
+                key: "restic_password"
+          - name: RESTIC_REPOSITORY
+            value: {{ printf "%s/%s" (index $.Values.backups "restic" "repository_base") $key | quote }}
+          - name: SRC_DIR
+            value: "/data"
+          - name: INCLUDES
+            value: {{ $backup.include_dirs | join "," | default "world" | quote }}
+          volumeMounts:
+          - mountPath: /tmp/.config/rclone
+            name: rclone-config
+          # - mountPath: /data
+          #   name: data
+        {{- end -}}
+        {{- end -}}
 
       {{- with .nodeSelector }}
       nodeSelector:
@@ -85,6 +159,21 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+      # - name: data
+      #   hostPath:
+      #     path: "{{ $.Values.host_servers_path }}/{{ .directory | default .name | lower | snakecase }}"
+      #     type: DirectoryOrCreate
+      # - name: backup
+      #   persistentVolumeClaim:
+      #     claimName: backup
+      - name: rclone-config
+        secret:
+          secretName: restic-secret
+          optional: true
+
+---
+
 
 ---
 

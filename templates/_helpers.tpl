@@ -174,3 +174,7 @@ MAX_MEMORY: {{ .max_memory | default "" | quote }}
 {{ $key }}: {{ $val | quote }}
 {{ end -}}
 {{- end }}
+
+{{- define "mine-kube.backup.image" -}}
+"{{ (.image | default dict).repository | default "itzg/mc-backup" }}:{{ (.image | default dict).tag | default "latest" }}"
+{{- end }}
